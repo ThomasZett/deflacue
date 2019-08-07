@@ -12,7 +12,6 @@ import os
 import logging
 import argparse
 
-from io import open  # Py2 support
 from copy import deepcopy
 from collections import defaultdict
 from subprocess import Popen, PIPE
@@ -80,7 +79,7 @@ class CueParser(object):
                 command, args = line.strip().split(' ', 1)
                 logging.debug('Command `%s`. Args: %s', command, args)
                 method = getattr(self, 'cmd_%s' % command.lower(), None)
-                if method is not None:
+                if method is not None and callable(method):
                     method(args)
                 else:
                     logging.warning('Unknown command `%s`. Skipping ...', command)
@@ -264,7 +263,7 @@ class Deflacue(object):
                 f for f in os.listdir(self.path_source) if os.path.isfile(os.path.join(self.path_source, f))
             ]
         else:
-            for current_dir, _, dir_files in os.walk(self.path_source):
+            for current_dir, _dir_dirs, dir_files in os.walk(self.path_source):
                 files[os.path.join(self.path_source, current_dir)] = [f for f in dir_files]
 
         return files
@@ -344,11 +343,6 @@ class Deflacue(object):
         if cd_info['DATE'] is not None:
             title = '%s - %s' % (cd_info['DATE'], title)
 
-        try:  # Py2 support
-            target_path = target_path.decode('utf-8')
-        except AttributeError:
-            pass
-
         bundle_path = os.path.join(target_path, cd_info['PERFORMER'], title)
         self._create_target_path(bundle_path)
 
@@ -384,7 +378,8 @@ class Deflacue(object):
             else:
                 # When a target path is specified, we create a subdirectory there
                 # named after the directory we are working on.
-                target_path = os.path.join(self.path_target, os.path.split(path)[1])
+                # target_path = os.path.join(self.path_target, os.path.split(path)[1])
+                target_path = os.path.join(self.path_target, path[len(self.path_source)+1:])
 
             self._create_target_path(target_path)
             logging.info('Target (output) path: %s', target_path)
