@@ -16,6 +16,8 @@ from copy import deepcopy
 from collections import defaultdict
 from subprocess import Popen, PIPE
 
+from pathlib import Path
+
 
 COMMENTS_VORBIS = (
     'TITLE',
@@ -44,6 +46,29 @@ COMMENTS_CUE_TO_VORBIS = {
     'DATE': 'DATE',
 }
 
+def path_walk(top, topdown = False, followlinks = False):
+    """
+         See Python docs for os.walk, exact same behavior but it yields Path() instances instead
+    """
+    names = list(top.iterdir())
+
+    dirs = (node for node in names if node.is_dir() is True)
+    nondirs =(node for node in names if node.is_dir() is False)
+    # dirs = [node for node in names if node.is_dir() is True]
+    # nondirs =[node for node in names if node.is_dir() is False]
+
+    if topdown:
+        yield top, dirs, nondirs
+
+    for name in dirs:
+        if followlinks or name.is_symlink() is False:
+            for x in path_walk(name, topdown, followlinks):
+                yield x
+
+    if topdown is not True:
+        yield top, dirs, nondirs
+        
+        
 
 class DeflacueError(Exception):
     """Exception type raised by deflacue."""
